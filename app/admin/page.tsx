@@ -14,20 +14,18 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchStats = async () => {
-    try {
-      const res = await fetch("/api/admin/overview");
-      const data = await res.json();
-      setStats(data);
-    } catch {
-      setStats(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchStats();
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/overview");
+        const data = await res.json();
+        setStats(data);
+      } catch {
+        setStats(null);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const sections = [
