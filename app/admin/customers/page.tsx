@@ -14,20 +14,18 @@ export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchCustomers = async () => {
-    try {
-      const res = await fetch("/api/admin/customers");
-      const data = await res.json();
-      setCustomers(data);
-    } catch {
-      setCustomers([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchCustomers();
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/customers");
+        const data = await res.json();
+        setCustomers(data);
+      } catch {
+        setCustomers([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   return (
