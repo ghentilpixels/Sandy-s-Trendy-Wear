@@ -5,20 +5,25 @@ import { useAuth } from "../../context/AuthContext";
 import { LogIn, UserPlus, Mail, Lock, User } from "lucide-react";
 
 export default function AuthPage() {
-  const [mode, setMode] = useState<"login" | "register">("login");
+const [mode, setMode] = useState<"login" | "register">("login");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
-  const { login, register } = useAuth();
+  const { login, register, user } = useAuth();
   const router = useRouter();
+
+  React.useEffect(() => {
+    if (user) {
+      router.push(user.role === "admin" ? "/admin" : "/dashboard");
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      let result;
-      if (mode === "login") result = await login(form.email, form.password);
-      else result = await register(form.name, form.email, form.password);
-      const dest = result.user?.role === "admin" ? "/admin" : "/dashboard";
-      router.push(dest);
-    } catch (err) {}
+      if (mode === "login") await login(form.email, form.password);
+      else await register(form.name, form.email, form.password);
+    } catch {
+      // Auth errors handled by context
+    }
   };
 
   return (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -13,11 +14,24 @@ import {
 } from "lucide-react";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
-import { products } from "../data/products";
+import { products as staticProducts } from "../data/products";
 
-const featuredProducts = products.filter((product) => product.featured);
-const bestSellers = products.filter((product) => product.bestSeller);
-const heroProducts = featuredProducts.slice(0, 3);
+type Product = {
+  id: number;
+  name: string;
+  category: string;
+  gender: string;
+  description: string;
+  price: number;
+  discountPrice: number | null;
+  images: string[];
+  sizes: string[];
+  colors: string[];
+  stock: number;
+  featured: boolean;
+  bestSeller: boolean;
+  createdAt: string;
+};
 
 const serviceHighlights = [
   {
@@ -123,8 +137,48 @@ function StaggerSection({ children }: { children: React.ReactNode }) {
 }
 
 export default function Home() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProducts() {
+      try {
+        const res = await fetch("/api/products");
+        if (!res.ok) throw new Error("Failed to fetch products");
+        const data = await res.json();
+        if (!cancelled) {
+          setProducts(data);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setProducts(staticProducts);
+          setLoading(false);
+        }
+      }
+    }
+
+    loadProducts();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const featuredProducts = products.filter((product) => product.featured);
+  const bestSellers = products.filter((product) => product.bestSeller);
+  const heroProducts = featuredProducts.slice(0, 3);
   const mainHeroProduct = heroProducts[0] ?? products[0];
   const supportingHeroProducts = heroProducts.slice(1);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[calc(100vh-150px)] items-center justify-center">
+        <p className="text-lg text-slate-500">Loading products...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-24">

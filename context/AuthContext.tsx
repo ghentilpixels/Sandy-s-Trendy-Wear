@@ -6,80 +6,110 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { supabase } from "../lib/supabase";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
-const STORAGE_KEY = "sandystrendywear_auth";
+type User = {
+  id: string;
+  email: string;
+  name?: string;
+  role?: string;
+};
 
-type AuthContextType = any;
+type AuthContextType = {
+  user: User | null;
+  token: string | null;
+  status: "idle" | "loading" | "error";
+  error: string | null;
+  isLoggedIn: boolean;
+  isAdmin: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+};
+
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [status, setStatus] = useState("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored =
-      typeof window !== "undefined"
-        ? window.localStorage.getItem(STORAGE_KEY)
-        : null;
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setUser(parsed.user);
-        setToken(parsed.token);
-      } catch (err) {
-        if (typeof window !== "undefined")
-          window.localStorage.removeItem(STORAGE_KEY);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const userData: User = {
+          id: session.user.id,
+          email: session.user.email || "",
+          name: session.user.user_metadata?.name,
+          role: session.user.user_metadata?.role,
+        };
+        setUser(userData);
+        setToken(session.access_token);
       }
-    }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          const userData: User = {
+            id: session.user.id,
+            email: session.user.email || "",
+            name: session.user.user_metadata?.name,
+            role: session.user.user_metadata?.role,
+          };
+          setUser(userData);
+          setToken(session.access_token);
+        } else {
+          setUser(null);
+          setToken(null);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (user && token) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, token }));
-    } else {
-      window.localStorage.removeItem(STORAGE_KEY);
-    }
-  }, [user, token]);
-
-  const saveAuth = (payload: any) => {
+  const login = async (email: string, password: string) => {
+    setStatus("loading");
     setError(null);
-    setUser(payload.user);
-    setToken(payload.token);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) {
+      setStatus("error");
+      setError(error.message);
+      throw error;
+    }
     setStatus("idle");
   };
 
-  const callAuthEndpoint = async (path: string, body: any) => {
+  const register = async (name: string, email: string, password: string) => {
     setStatus("loading");
     setError(null);
-    const response = await fetch(`${API_BASE}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name },
+      },
     });
-    const payload = await response.json();
-    if (!response.ok) {
+    if (error) {
       setStatus("error");
-      setError(payload.message || "Authentication failed");
-      throw new Error(payload.message || "Authentication failed");
+      setError(error.message);
+      throw error;
     }
-    saveAuth(payload);
-    return payload;
+    setStatus("idle");
   };
 
-  const login = (email: string, password: string) =>
-    callAuthEndpoint("/api/auth/login", { email, password });
-  const register = (name: string, email: string, password: string) =>
-    callAuthEndpoint("/api/auth/register", { name, email, password });
-  const logout = () => {
+  const logout = async () => {
+    setStatus("loading");
+    await supabase.auth.signOut();
     setUser(null);
     setToken(null);
     setError(null);
     setStatus("idle");
-    if (typeof window !== "undefined")
-      window.localStorage.removeItem(STORAGE_KEY);
   };
 
   const value = useMemo(
@@ -94,7 +124,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       register,
       logout,
     }),
-    [user, token, status, error],
+    [user, token, status, error]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
