@@ -21,9 +21,10 @@ export default function ImageUploader({ onUpload, folder = "eccommerce" }: Image
           sources: ["local", "url", "camera"],
         }}
         onSuccess={(results) => {
-          if (results?.info?.secure_url) {
-            setPreview(results.info.secure_url as string);
-            onUpload(results.info.secure_url as string);
+          const info = results?.info;
+          if (typeof info === "object" && info?.secure_url) {
+            setPreview(info.secure_url);
+            onUpload(info.secure_url);
           }
         }}
       >

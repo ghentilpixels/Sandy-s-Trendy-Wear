@@ -4,7 +4,7 @@ import { useCart } from "../../context/CartContext";
 import Link from "next/link";
 
 export default function CartPage() {
-  const { cart, updateQuantity, removeFromCart, summary } = useCart();
+  const { cart, removeFromCart, summary } = useCart();
   if (!cart.length)
     return (
       <div className="rounded-3xl border border-slate-200 bg-white p-16 text-center shadow-sm">
@@ -32,9 +32,10 @@ export default function CartPage() {
               className="flex items-center gap-6 rounded-3xl border p-5"
             >
               <img
-                src={item.image}
-                className="h-32 w-32 rounded-3xl object-cover"
-              />
+                 src={item.image}
+                 alt={item.name}
+                 className="h-32 w-32 rounded-3xl object-cover"
+               />
               <div className="flex-1">
                 <h2 className="text-lg font-semibold">{item.name}</h2>
                 <p className="mt-2 text-sm text-slate-500">

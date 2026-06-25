@@ -7,8 +7,25 @@ import React, {
   useState,
 } from "react";
 
-type CartItem = any;
-const CartContext = createContext<any>(null);
+type CartItem = {
+  id: number;
+  name: string;
+  price: number;
+  image: string;
+  size: string;
+  color: string;
+  quantity: number;
+};
+type CartContextType = {
+  cart: CartItem[];
+  addToCart: (product: any, selectedOptions?: any) => void;
+  updateQuantity: (id: number, size: string, color: string, quantity: number) => void;
+  removeFromCart: (id: number, size: string, color: string) => void;
+  clearCart: () => void;
+  summary: { subtotal: number; shipping: number; total: number };
+};
+
+const CartContext = createContext<CartContextType | null>(null);
 const CART_STORAGE_KEY = "sandys-trendy-wear-cart";
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
@@ -68,7 +85,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
             ? { ...item, quantity: Math.max(1, quantity) }
             : item,
         )
-        .filter((i: any) => i.quantity > 0),
+        .filter((i) => i.quantity > 0),
     );
   };
 
